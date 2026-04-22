@@ -3,25 +3,27 @@ import mido
 import threading
 
 import numpy as np
-import rpi_ws281x as LED
+import board
+import neopixel as LED
 
-LED_BRIGHTNESS = 255
+LED_BRIGHTNESS = 1.0
 LED_COUNT = 288
-LED_PIN = 18
+LED_PIN = 10
 
-strip = LED.PixelStrip(LED_COUNT, LED_PIN, LED_BRIGHTNESS)
-strip.begin()
+strip = LED.NeoPixel(board.D10, LED_COUNT, brightness=LED_BRIGHTNESS, auto_write=False) # sets up LED strip
 
 pedal = False
 
 def main():
     global pedal
-    input_port =   mido.open_input() # opens MIDI input port
+    port_name = next(p for p in mido.get_input_names() if 'Roland' in p) # finds MIDI input port with "Roland" in name
+    input_port =   mido.open_input(port_name) # opens MIDI input port
     print("Connected")
     for msg in input_port: # loops through MIDI messages
             if msg.type == 'note_on' and msg.velocity > 0: # if note is pressed):
-                strip.setPixelColor(ledLocation(msg.note), LED.Color(*ledColor(msg.note, msg.velocity))) # sets color based on pitch of note
-                strip.show()    # displays new color / brightness                    
+                strip[ledLocation(msg.note)]=(*ledColor(msg.note, msg.velocity)) # sets color based on pitch of note
+                strip.show()    # displays new color / brightness     
+                print(f"Note On: {msg.note}, Velocity: {msg.velocity}") # prints note and velocity in terminal for testing
             elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0): # if note is released
                threading.Thread(target=ledFadeSustain, args=(ledLocation(msg.note), ledColor(msg.note, msg.velocity), msg.velocity, pedal), daemon = True).start() # calls fade and sustain function with pedal = false
             elif msg.type == 'control_change': # if control change message (pedal)
@@ -55,7 +57,7 @@ def ledColorHelper(pitch, colorIndex):
     return int(interValueColor) # returns interpolated color value as an integer
 
 def ledLocation(pitch):
-    pass
+    return 0
 def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain function once LED is pressed
     (Red, Green, Blue) = color #unpacks tuple of RGB
     subR = Red / 5 # divides each color into 5 smaller steps
@@ -66,10 +68,10 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
         Red -= subR
         Green -= subG
         Blue -= subB
-        strip.setPixelColor(ledLocation, LED.Color(int(Red), int(Green), int(Blue))) #sets new color / brightness
+        strip[ledLocation] = (int(Red), int(Green), int(Blue)) #sets new color / brightness
         time.sleep(timeDelay) # delay between each step, so its a smooth fade
         strip.show() # displays new color / brightness
-    strip.setPixelColor(ledLocation, LED.Color(0, 0, 0)) # makes sure goes to full black lastly
+    strip[ledLocation] = (0, 0, 0) # makes sure goes to full black lastly
     strip.show() # displays new color / brightness
 
 def sustainHelper(pedal, velocity):
