@@ -3,14 +3,13 @@ import mido
 import threading
 
 import numpy as np
-import board
-import neopixel as LED
+from pi5neo import Pi5Neo
 
 LED_BRIGHTNESS = 1.0
 LED_COUNT = 288
 LED_PIN = 10
 
-strip = LED.NeoPixel(board.D10, LED_COUNT, brightness=LED_BRIGHTNESS, auto_write=False) # sets up LED strip
+strip = Pi5Neo('/dev/spidev0.0', LED_COUNT, 800) # creates LED strip object with 288 LEDs, connected to SPI port 0.0, with a frequency of 800kHz
 
 pedal = False
 
@@ -20,17 +19,17 @@ def main():
     input_port =   mido.open_input(port_name) # opens MIDI input port
     print("Connected")
     for msg in input_port: # loops through MIDI messages
-            if msg.type == 'note_on' and msg.velocity > 0: # if note is pressed):
-                strip[ledLocation(msg.note)]=(ledColor(msg.note, msg.velocity)) # sets color based on pitch of note
-                strip.show()    # displays new color / brightness     
-                print(f"Note On: {msg.note}, Velocity: {msg.velocity}") # prints note and velocity in terminal for testing
-            elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0): # if note is released
-               threading.Thread(target=ledFadeSustain, args=(ledLocation(msg.note), ledColor(msg.note, msg.velocity), msg.velocity, pedal), daemon = True).start() # calls fade and sustain function with pedal = false
-            elif msg.type == 'control_change': # if control change message (pedal)
-                if msg.control == 64 and msg.value >= 64: # if pedal is pressed
-                        pedal = True
-                elif msg.control == 64 and msg.value < 64: # if pedal is released
-                        pedal = False
+        if msg.type == 'note_on' and msg.velocity > 0: # if note is pressed):
+            strip.set_pixel_color(ledLocation(msg.note), *ledColor(msg.note, msg.velocity)) # sets color based on pitch of note
+            strip.update_strip()    # displays new color / brightness     
+            print(f"Note On: {msg.note}, Velocity: {msg.velocity}") # prints note and velocity in terminal for testing
+        elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0): # if note is released
+           threading.Thread(target=ledFadeSustain, args=(ledLocation(msg.note), ledColor(msg.note, msg.velocity), msg.velocity, pedal), daemon = True).start() # calls fade and sustain function with pedal = false
+        elif msg.type == 'control_change': # if control change message (pedal)
+            if msg.control == 64 and msg.value >= 64: # if pedal is pressed
+                    pedal = True
+            elif msg.control == 64 and msg.value < 64: # if pedal is released
+                    pedal = False
                     #msg.note = note type
                     #msg.velocity = how hard the note is played
                     #msg.channel = which channel the note is played on
@@ -68,11 +67,11 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
         Red -= subR
         Green -= subG
         Blue -= subB
-        strip[ledLocation] = (int(Red), int(Green), int(Blue)) #sets new color / brightness
+        strip.set_pixel_color(ledLocation, int(Red), int(Green), int(Blue)) #sets new color / brightness
         time.sleep(timeDelay) # delay between each step, so its a smooth fade
-        strip.show() # displays new color / brightness
-    strip[ledLocation] = (0, 0, 0) # makes sure goes to full black lastly
-    strip.show() # displays new color / brightness
+        strip.update_strip() # displays new color / brightness
+    strip.set_pixel_color(ledLocation, 0, 0, 0) # makes sure goes to full black lastly
+    strip.update_strip() # displays new color / brightness
 
 def sustainHelper(pedal, velocity):
     pedalVelo = [0, 40, 80, 127]
