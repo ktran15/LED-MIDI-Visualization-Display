@@ -21,7 +21,7 @@ def main():
     print("Connected")
     for msg in input_port: # loops through MIDI messages
             if msg.type == 'note_on' and msg.velocity > 0: # if note is pressed):
-                strip[ledLocation(msg.note)]=(*ledColor(msg.note, msg.velocity)) # sets color based on pitch of note
+                strip[ledLocation(msg.note)]=(ledColor(msg.note, msg.velocity)) # sets color based on pitch of note
                 strip.show()    # displays new color / brightness     
                 print(f"Note On: {msg.note}, Velocity: {msg.velocity}") # prints note and velocity in terminal for testing
             elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0): # if note is released
