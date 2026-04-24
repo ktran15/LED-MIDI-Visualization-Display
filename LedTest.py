@@ -14,3 +14,4 @@ def main():
 main()
 
 #sudo sh -c 'echo 32768 > /sys/module/spidev/parameters/bufsiz'
+# sudo tee /sys/module/spidev/parameters/bufsiz <<< 32768
