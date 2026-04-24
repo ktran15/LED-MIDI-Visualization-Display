@@ -6,7 +6,7 @@ import numpy as np
 from pi5neo import Pi5Neo
 
 LED_BRIGHTNESS = 1.0
-LED_COUNT = 288
+LED_COUNT = 144
 LED_PIN = 10
 
 strip = Pi5Neo('/dev/spidev0.0', LED_COUNT, 800) # creates LED strip object with 288 LEDs, connected to SPI port 0.0, with a frequency of 800kHz
@@ -20,7 +20,7 @@ def main():
     print("Connected")
     for msg in input_port: # loops through MIDI messages
         if msg.type == 'note_on' and msg.velocity > 0: # if note is pressed):
-            strip.set_pixel_color(ledLocation(msg.note), *ledColor(msg.note, msg.velocity)) # sets color based on pitch of note
+            strip.set_led_color(ledLocation(msg.note), *ledColor(msg.note, msg.velocity)) # sets color based on pitch of note
             strip.update_strip()    # displays new color / brightness     
             print(f"Note On: {msg.note}, Velocity: {msg.velocity}") # prints note and velocity in terminal for testing
         elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0): # if note is released
@@ -67,10 +67,10 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
         Red -= subR
         Green -= subG
         Blue -= subB
-        strip.set_pixel_color(ledLocation, int(Red), int(Green), int(Blue)) #sets new color / brightness
+        strip.set_led_color(ledLocation, int(Red), int(Green), int(Blue)) #sets new color / brightness
         time.sleep(timeDelay) # delay between each step, so its a smooth fade
         strip.update_strip() # displays new color / brightness
-    strip.set_pixel_color(ledLocation, 0, 0, 0) # makes sure goes to full black lastly
+    strip.set_led_color(ledLocation, 0, 0, 0) # makes sure goes to full black lastly
     strip.update_strip() # displays new color / brightness
 
 def sustainHelper(pedal, velocity):
