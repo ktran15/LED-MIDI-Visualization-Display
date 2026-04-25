@@ -92,10 +92,10 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
 def sustainHelper(pedal, velocity):
     pedalVelo = [0, 40, 80, 127]
     if pedal == False:
-        fadeTime = [0.5,1,2,3]
+        fadeTime = [0.1,0.15,0.2,0.25]
         interFadeTime = np.interp(velocity, pedalVelo, fadeTime) # interpolates fade time based on velocity input and data lists
     elif pedal == True:
-        fadeTime = [0.5,5,10,20]
+        fadeTime = [0.5,0.7,0.9,1.1]
         interFadeTime = np.interp(velocity, pedalVelo, fadeTime) # interpolates fade time based on velocity input and data lists
     return float(interFadeTime) # returns interpolated fade time value as an float
 
