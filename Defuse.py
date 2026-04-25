@@ -23,10 +23,10 @@ def main():
             loc = ledLocation(msg.note) # finds LED location based on pitch of note
             R,G,B = ledColor(msg.note, msg.velocity) # sets color based on pitch of note
             strip.set_led_color(loc, R, G, B) # sets color based on pitch of note
-            strip.set_led_color(loc+1, int(R*0.7), int(G*0.7), int(B*0.7))
-            strip.set_led_color(loc+2, int(R*0.4), int(G*0.4), int(B*0.4)) # sets color based on pitch of note
-            strip.set_led_color(loc-1, int(R*0.7), int(G*0.7), int(B*0.7)) 
-            strip.set_led_color(loc-2, int(R*0.4), int(G*0.4), int(B*0.4)) # sets color based on pitch of note
+            strip.set_led_color(loc+1, int(R*0.25), int(G*0.25), int(B*0.25))
+            strip.set_led_color(loc+2, int(R*0.08), int(G*0.08), int(B*0.08)) # sets color based on pitch of note
+            strip.set_led_color(loc-1, int(R*0.25), int(G*0.25), int(B*0.25)) 
+            strip.set_led_color(loc-2, int(R*0.08), int(G*0.08), int(B*0.08)) # sets color based on pitch of note
             strip.update_strip()    # displays new color / brightness     
             print(f"Note On: {msg.note}, Velocity: {msg.velocity}") # prints note and velocity in terminal for testing
         elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0): # if note is released
@@ -46,7 +46,7 @@ def main():
 
 def veloToBrightness(velocity):
     velocities = [0, 127] # data list 1 = potential velocities
-    brightness = [50, 200] # data list 2 = potential brigthneses
+    brightness = [30, 180] # data list 2 = potential brigthneses
     interValueBrightness = np.interp(velocity, velocities, brightness) # interpolates brightness value based on velocity input and data lists
     return int(interValueBrightness) # returns interpolated brightness value as an integer
 
@@ -79,11 +79,14 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
     timeDelay = sustainHelper(pedal, velocity) / 5 # divides sustain time into 5 smaller steps
     loc = ledLocation
     for i in range (5):
-        strip.set_led_color(loc, int(Red-subR), int(Green-subG), int(Blue-subB)) #sets new color / brightness
-        strip.set_led_color(loc+1, int(Red*0.7), int(Green*0.7), int(Blue*0.7)) #sets new color / brightness
-        strip.set_led_color(loc+2, int(Red*0.4), int(Green*0.4), int(Blue*0.4)) #sets new color / brightness
-        strip.set_led_color(loc-1, int(Red*0.7), int(Green*0.7), int(Blue*0.7)) #sets new color / brightness
-        strip.set_led_color(loc-2, int(Red*0.4), int(Green*0.4), int(Blue*0.4)) #sets new color / brightness
+        Red -= subR
+        Green -= subG
+        Blue -= subB
+        strip.set_led_color(loc, int(Red), int(Green), int(Blue)) #sets new color / brightness
+        strip.set_led_color(loc+1, int(Red*0.25), int(Green*0.25), int(Blue*0.25)) #sets new color / brightness
+        strip.set_led_color(loc+2, int(Red*0.08), int(Green*0.08), int(Blue*0.08)) #sets new color / brightness
+        strip.set_led_color(loc-1, int(Red*0.25), int(Green*0.25), int(Blue*0.25)) #sets new color / brightness
+        strip.set_led_color(loc-2, int(Red*0.08), int(Green*0.08), int(Blue*0.08)) #sets new color / brightness
         time.sleep(timeDelay) # delay between each step, so its a smooth fade
         strip.update_strip() # displays new color / brightness
     strip.set_led_color(loc, 0, 0, 0) # makes sure goes to full black lastly
