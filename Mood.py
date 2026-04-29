@@ -6,13 +6,16 @@ import numpy as np
 from pi5neo import Pi5Neo, EPixelType
 
 LED_BRIGHTNESS = 1.0
-LED_COUNT = 182
+LED_COUNT = 144
 LED_PIN = 10
 
 strip = Pi5Neo('/dev/spidev0.0', LED_COUNT, 800) # creates LED strip object with 288 LEDs, connected to SPI port 0.0, with a frequency of 800kHz
 
 pedal = False
 Diffusion = 7 # must be odd
+
+global recent_tempo = []
+global recent_velo = []
 
 def main():
     global pedal
@@ -24,6 +27,12 @@ def main():
             loc = ledLocation(msg.note) # finds LED location based on pitch of note
             R,G,B = ledColor(msg.note, msg.velocity) # sets color based on pitch of note
             half = Diffusion // 2
+            recent_velo.append(msg.velocity) # adds velo to list of recent velos
+            if len(recent_velo) > 7: #checks if velo list is too long
+                recent_velo.pop(0) # removes oldest velo at index 0
+            recent_tempo.append(time.perf_counter()) # adds current time to list of recent tempos
+            if len(recent_tempo) > 7: #checks if tempo list is too long
+                recent_tempo.pop(0) # removes oldest tempo at index 0
             for i in range(-half, half +1):
                 multiplier = diffusionHelper(abs(i))
                 strip.set_led_color(loc+i, int(R*multiplier), int(G*multiplier), int(B*multiplier)) # sets color based on pitch of note
@@ -69,11 +78,11 @@ def ledColorHelper(pitch, colorIndex):
 
 def ledLocation(pitch):
     pitches = [21, 108] # data list of potential pitches
-    locations = [0, 181] # data list of potential LED locations
+    locations = [0, 143] # data list of potential LED locations
     interValueLocation = np.interp(pitch, pitches, locations) # interpolates LED location based on pitch input and data lists
     loc = interValueLocation
-    loc = min(178, loc)
-    loc = max(3, loc) # makes sure location is at least 1, so it doesn't try to light up LED -1
+    loc = min(142, loc)
+    loc = max(1, loc) # makes sure location is at least 1, so it doesn't try to light up LED -1
     print(f"LED Location: {loc}") # prints LED location in terminal for testing
     return int(loc) # returns interpolated LED location as an integer
 
@@ -89,8 +98,8 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
         Green -= subG
         Blue -= subB
         for j in range(-Diffusion//2, Diffusion//2 + 1):
-            multiplier = diffusionHelper(abs(j))
-            strip.set_led_color(loc+j, int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # sets color based on pitch of note
+            multiplier = diffusionHelper(abs(i))
+            strip.set_led_color(loc+i, int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # sets color based on pitch of note
         time.sleep(timeDelay) # delay between each step, so its a smooth fade
         strip.update_strip() # displays new color / brightness
     for i in range(-Diffusion//2, Diffusion//2 + 1):
