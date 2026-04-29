@@ -111,3 +111,5 @@ def sustainHelper(pedal, velocity):
 main()
 
 #sudo sh -c 'echo 65536 > /sys/module/spidev/parameters/bufsiz'
+#sudo bash -c 'echo 65536 > /sys/module/spidev/parameters/bufsiz'
+#echo 65536 | sudo tee /sys/module/spidev/parameters/bufsiz
