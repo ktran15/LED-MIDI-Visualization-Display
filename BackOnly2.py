@@ -13,9 +13,11 @@ strip = Pi5Neo('/dev/spidev0.0', LED_COUNT, 800) # creates LED strip object with
 
 pedal = False
 Diffusion = 7 # must be odd
+last_note_time = 0 # global variable to keep track of time of last note played
 
 def main():
     global pedal
+    global last_note_time
     port_name = next(p for p in mido.get_input_names() if 'Roland' in p) # finds MIDI input port with "Roland" in name
     input_port =   mido.open_input(port_name) # opens MIDI input port
     print("Connected")
@@ -24,6 +26,7 @@ def main():
             loc = ledLocation(msg.note) # finds LED location based on pitch of note
             R,G,B = ledColor(msg.note, msg.velocity) # sets color based on pitch of note
             half = Diffusion // 2
+            last_note_time = time.perf_counter() # updates time of last note played
             for i in range(-half, half +1):
                 multiplier = diffusionHelper(abs(i))
                 strip.set_led_color(loc+i, int(R*multiplier), int(G*multiplier), int(B*multiplier)) # sets color based on pitch of note
@@ -78,6 +81,7 @@ def ledLocation(pitch):
     return int(loc) # returns interpolated LED location as an integer
 
 def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain function once LED is pressed
+    global last_note_time
     (Red, Green, Blue) = color #unpacks tuple of RGB
     subR = Red / 8
     subG = Green / 8
