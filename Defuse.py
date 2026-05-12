@@ -6,7 +6,7 @@ import numpy as np
 from pi5neo import Pi5Neo, EPixelType
 
 LED_BRIGHTNESS = 1.0
-LED_COUNT = 182
+LED_COUNT = 181
 LED_PIN = 10
 
 strip = Pi5Neo('/dev/spidev0.0', LED_COUNT, 800) # creates LED strip object with 288 LEDs, connected to SPI port 0.0, with a frequency of 800kHz
@@ -69,7 +69,7 @@ def ledColorHelper(pitch, colorIndex):
 
 def ledLocation(pitch):
     pitches = [21, 108] # data list of potential pitches
-    locations = [0, 181] # data list of potential LED locations
+    locations = [0, 180] # data list of potential LED locations
     interValueLocation = np.interp(pitch, pitches, locations) # interpolates LED location based on pitch input and data lists
     loc = interValueLocation
     loc = min(178, loc)
