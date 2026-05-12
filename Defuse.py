@@ -13,10 +13,13 @@ strip = Pi5Neo('/dev/spidev0.0', LED_COUNT, 800) # creates LED strip object with
 
 pedal = False
 Diffusion = 7 # must be odd
-global recent_colors = [] # list of tuples of RGB values for recently played notes
+recent_colors = [] # list of tuples of RGB values for recently played notes
+last_note_time = 0 # variable to track time of last note played, for tempo calculation
 
 def main():
     global pedal
+    global recent_colors
+    global last_note_time
     port_name = next(p for p in mido.get_input_names() if 'Roland' in p) # finds MIDI input port with "Roland" in name
     input_port =   mido.open_input(port_name) # opens MIDI input port
     print("Connected")
@@ -26,6 +29,7 @@ def main():
             loc = ledLocation(msg.note) # finds LED location based on pitch of note
             R,G,B = ledColor(msg.note, msg.velocity) # sets color based on pitch of note
             half = Diffusion // 2
+            last_note_time = time.perf_counter() # updates time of last note played
             recent_colors.append((R,G,B)) # adds color to list of recently played notes
             if len(recent_colors) > 15: # keeps list of recently played notes to 5
                 recent_colors.pop(0)
@@ -140,6 +144,8 @@ def bottomStripThread():
                     strip.set_led_color(i, intermediate_R, intermediate_G, intermediate_B) # sets color based on average color of recently played notes
                 strip.update_strip() # displays new color / brightness
                 time.sleep(1) # delay between each step, so its a smooth transition
+        if time.perf_counter() - last_note_time > 6:
+            recent_colors.clear() # if no notes played for 10 seconds, clear recent colors to turn off bottom strip
         current_avg_color = new_average_color # updates current average color to new average color for next loop
 main()
 
