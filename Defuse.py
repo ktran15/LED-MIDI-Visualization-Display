@@ -6,24 +6,29 @@ import numpy as np
 from pi5neo import Pi5Neo, EPixelType
 
 LED_BRIGHTNESS = 1.0
-LED_COUNT = 181
+LED_COUNT = 286
 LED_PIN = 10
 
 strip = Pi5Neo('/dev/spidev0.0', LED_COUNT, 800) # creates LED strip object with 288 LEDs, connected to SPI port 0.0, with a frequency of 800kHz
 
 pedal = False
 Diffusion = 7 # must be odd
+global recent_colors = [] # list of tuples of RGB values for recently played notes
 
 def main():
     global pedal
     port_name = next(p for p in mido.get_input_names() if 'Roland' in p) # finds MIDI input port with "Roland" in name
     input_port =   mido.open_input(port_name) # opens MIDI input port
     print("Connected")
+    threading.Thread(target=bottomStripThread, daemon=True).start() # starts thread for bottom strip
     for msg in input_port: # loops through MIDI messages
         if msg.type == 'note_on' and msg.velocity > 0: # if note is pressed):
             loc = ledLocation(msg.note) # finds LED location based on pitch of note
             R,G,B = ledColor(msg.note, msg.velocity) # sets color based on pitch of note
             half = Diffusion // 2
+            recent_colors.append((R,G,B)) # adds color to list of recently played notes
+            if len(recent_colors) > 15: # keeps list of recently played notes to 5
+                recent_colors.pop(0)
             for i in range(-half, half +1):
                 multiplier = diffusionHelper(abs(i))
                 strip.set_led_color(loc+i, int(R*multiplier), int(G*multiplier), int(B*multiplier)) # sets color based on pitch of note
@@ -107,9 +112,34 @@ def sustainHelper(pedal, velocity):
         interFadeTime = np.interp(velocity, pedalVelo, fadeTime) # interpolates fade time based on velocity input and data lists
     return float(interFadeTime) # returns interpolated fade time value as an float
     
+def rollingAverage():
+    if len(recent_colors) == 0:
+        return (0,0,0) # if no recent colors, return black
+    avg_R = sum(color[0] for color in recent_colors) / len(recent_colors) # calculates average RED value
+    avg_G = sum(color[1] for color in recent_colors) / len(recent_colors) # calculates average GREEN value
+    avg_B = sum(color[2] for color in recent_colors) / len(recent_colors) # calculates average BLUE value
+    return (int(avg_R), int(avg_G), int(avg_B)) # returns tuple of average RGB
 
+def bottomStripThread():
+    current_avg_color = rollingAverage() # gets average color of recently played notes
+    while True:
+        for i in range(181, 286): # lights up bottom strip with average color
+            strip.set_led_color(i, current_avg_color[0], current_avg_color[1], current_avg_color[2])
+        strip.update_strip() # displays new color / brightness
+        time.sleep(5) # updates every 5 seconds for smooth transition
+        new_average_color = rollingAverage() # gets new average color of recently played notes
+        if new_average_color != current_avg_color: # if average color has changed, update bottom strip to new average color
+            step_R = (new_average_color[0] - current_avg_color[0]) / 5 # divides color change into 5 smaller steps for smooth transition
+            step_G = (new_average_color[1] - current_avg_color[1]) / 5
+            step_B = (new_average_color[2] - current_avg_color[2]) / 5 
+            for step in range(5):
+                intermediate_R = int(current_avg_color[0] + step_R * (step+1)) # calculates intermediate RED value for smooth transition
+                intermediate_G = int(current_avg_color[1] + step_G * (step+1)) # calculates intermediate GREEN value for smooth transition
+                intermediate_B = int(current_avg_color[2] + step_B * (step+1)) # calculates intermediate BLUE value for smooth transition
+                for i in range(181, 286):
+                    strip.set_led_color(i, intermediate_R, intermediate_G, intermediate_B) # sets color based on average color of recently played notes
+                strip.update_strip() # displays new color / brightness
+                time.sleep(1) # delay between each step, so its a smooth transition
+        current_avg_color = new_average_color # updates current average color to new average color for next loop
 main()
 
-#sudo sh -c 'echo 65536 > /sys/module/spidev/parameters/bufsiz'
-#sudo bash -c 'echo 65536 > /sys/module/spidev/parameters/bufsiz'
-#echo 65536 | sudo tee /sys/module/spidev/parameters/bufsiz
