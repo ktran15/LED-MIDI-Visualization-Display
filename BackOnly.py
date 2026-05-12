@@ -19,7 +19,6 @@ def main():
     port_name = next(p for p in mido.get_input_names() if 'Roland' in p) # finds MIDI input port with "Roland" in name
     input_port =   mido.open_input(port_name) # opens MIDI input port
     print("Connected")
-    threading.Thread(target=bottomStripThread, daemon=True).start() # starts thread for bottom strip
     for msg in input_port: # loops through MIDI messages
         if msg.type == 'note_on' and msg.velocity > 0: # if note is pressed):
             loc = ledLocation(msg.note) # finds LED location based on pitch of note
