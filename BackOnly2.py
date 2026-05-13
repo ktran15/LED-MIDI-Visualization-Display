@@ -15,6 +15,8 @@ pedal = False
 Diffusion = 7 # must be odd
 last_note_time = 0 # global variable to keep track of time of last note played
 
+active_fades = {} # dictionary to keep track of which notes are currently fading, with LED location as key and boolean as value
+
 def main():
     global pedal
     global last_note_time
@@ -27,6 +29,8 @@ def main():
             R,G,B = ledColor(msg.note, msg.velocity) # sets color based on pitch of note
             half = Diffusion // 2
             last_note_time = time.perf_counter() # updates time of last note played
+            if msg.note in active_fades:
+                active_fades[msg.note].set() # if note is already fading, stop the fade
             for i in range(-half, half +1):
                 multiplier = diffusionHelper(abs(i))
                 strip.set_led_color(loc+i, int(R*multiplier), int(G*multiplier), int(B*multiplier)) # sets color based on pitch of note
@@ -34,7 +38,9 @@ def main():
             print(f"Note On: {msg.note}, Velocity: {msg.velocity}") # prints note and velocity in terminal for testing
         elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0): # if note is released
             loc = ledLocation(msg.note) # finds LED location based on pitch of note
-            threading.Thread(target=ledFadeSustain, args=(loc, ledColor(msg.note, msg.velocity), msg.velocity, pedal), daemon = True).start() # calls fade and sustain function with pedal = false
+            offEvent = threading.Event()
+            active_fades[msg.note] = offEvent
+            threading.Thread(target=ledFadeSustain, args=(loc, ledColor(msg.note, msg.velocity), msg.velocity, pedal, offEvent, msg.note), daemon = True).start() # calls fade and sustain function with pedal = false
         elif msg.type == 'control_change': # if control change message (pedal)
             if msg.control == 64 and msg.value >= 64: # if pedal is pressed
                     pedal = True
@@ -80,7 +86,7 @@ def ledLocation(pitch):
     print(f"LED Location: {loc}") # prints LED location in terminal for testing
     return int(loc) # returns interpolated LED location as an integer
 
-def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain function once LED is pressed
+def ledFadeSustain (ledLocation, color, velocity, pedal, event, note): # fade and sustain function once LED is pressed
     global last_note_time
     (Red, Green, Blue) = color #unpacks tuple of RGB
     subR = Red / 8
@@ -92,12 +98,18 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
         Red -= subR
         Green -= subG
         Blue -= subB
+        if event.is_set():
+            return
         for j in range(-Diffusion//2, Diffusion//2 + 1):
+            if event.is_set():
+                return
             multiplier = diffusionHelper(abs(j))
             strip.set_led_color(loc+j, int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # sets color based on pitch of note
         time.sleep(timeDelay) # delay between each step, so its a smooth fade
         strip.update_strip() # displays new color / brightness
     while time.perf_counter() - last_note_time < 3: # if no new notes played for 6 seconds, start fading out bottom strip
+        if event.is_set():
+            return
         time.sleep(0.5) # checks every second if new note played
     lastSubR = Red / 5
     lastSubG = Green / 5
@@ -106,11 +118,17 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
         Red -= lastSubR
         Green -= lastSubG
         Blue -= lastSubB
+        if event.is_set():
+            return
         for j in range(-Diffusion//2, Diffusion//2 + 1):
            multiplier = diffusionHelper(abs(j))
+           if event.is_set():
+                return
            strip.set_led_color(loc+j, int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # makes sure goes to full black lastly
         time.sleep(0.2) # delay between each step, so its a smooth fade
         strip.update_strip() # displays new color / brightness
+    active_fades.pop(note, None)
+
 
 def sustainHelper(pedal, velocity):
     pedalVelo = [0, 40, 80, 127]
