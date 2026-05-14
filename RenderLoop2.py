@@ -103,7 +103,7 @@ def ledFadeSustain (ledLocation, color, velocity, pedal, event, note): # fade an
     subB = Blue / 8
     timeDelay = sustainHelper(pedal, velocity) / 8 # divides sustain time into 5 smaller steps
     loc = ledLocation
-    for i in range (7):
+    for i in range (8):
         Red -= subR
         Green -= subG
         Blue -= subB
@@ -115,25 +115,6 @@ def ledFadeSustain (ledLocation, color, velocity, pedal, event, note): # fade an
             multiplier = diffusionHelper(abs(j))
             frame_buffer[loc+j] = (int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # sets color based on pitch of note
         time.sleep(timeDelay) # delay between each step, so its a smooth fade
-    while time.perf_counter() - last_note_time < 3: # if no new notes played for 6 seconds, start fading out bottom strip
-        if event.is_set():
-            return
-        time.sleep(0.5) # checks every second if new note played
-    lastSubR = Red / 5
-    lastSubG = Green / 5
-    lastSubB = Blue / 5
-    for i in range(5):
-        Red -= lastSubR
-        Green -= lastSubG
-        Blue -= lastSubB
-        if event.is_set():
-            return
-        for j in range(-Diffusion//2, Diffusion//2 + 1):
-           multiplier = diffusionHelper(abs(j))
-           if event.is_set():
-                return
-           frame_buffer[loc+j] = (int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # makes sure goes to full black lastly
-        time.sleep(0.2) # delay between each step, so its a smooth fade
     active_fades.pop(note, None)
 
 
