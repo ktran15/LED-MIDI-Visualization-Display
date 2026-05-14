@@ -15,11 +15,15 @@ pedal = False
 Diffusion = 7 # must be odd
 last_note_time = 0 # global variable to keep track of time of last note played
 
+active_fades = {} # dictionary to keep track of which notes are currently fading, with LED location as key and boolean as value
+frame_buffer = [(0,0,0)] * LED_COUNT # initializes frame buffer with all LEDs off
 def main():
     global pedal
     global last_note_time
+    global frame_buffer
     port_name = next(p for p in mido.get_input_names() if 'Roland' in p) # finds MIDI input port with "Roland" in name
     input_port =   mido.open_input(port_name) # opens MIDI input port
+    threading.Thread(target=renderLoop, daemon=True).start() # starts render loop in separate thread
     print("Connected")
     for msg in input_port: # loops through MIDI messages
         if msg.type == 'note_on' and msg.velocity > 0: # if note is pressed):
@@ -27,14 +31,17 @@ def main():
             R,G,B = ledColor(msg.note, msg.velocity) # sets color based on pitch of note
             half = Diffusion // 2
             last_note_time = time.perf_counter() # updates time of last note played
+            if msg.note in active_fades:
+                active_fades[msg.note].set() # if note is already fading, stop the fade
             for i in range(-half, half +1):
                 multiplier = diffusionHelper(abs(i))
-                strip.set_led_color(loc+i, int(R*multiplier), int(G*multiplier), int(B*multiplier)) # sets color based on pitch of note
-            strip.update_strip()    # displays new color / brightness     
+                frame_buffer[loc+i] = (int(R*multiplier), int(G*multiplier), int(B*multiplier)) # sets color based on pitch of note
             print(f"Note On: {msg.note}, Velocity: {msg.velocity}") # prints note and velocity in terminal for testing
         elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0): # if note is released
             loc = ledLocation(msg.note) # finds LED location based on pitch of note
-            threading.Thread(target=ledFadeSustain, args=(loc, ledColor(msg.note, msg.velocity), msg.velocity, pedal), daemon = True).start() # calls fade and sustain function with pedal = false
+            offEvent = threading.Event()
+            active_fades[msg.note] = offEvent
+            threading.Thread(target=ledFadeSustain, args=(loc, ledColor(msg.note, msg.velocity), msg.velocity, pedal, offEvent, msg.note), daemon = True).start() # calls fade and sustain function with pedal = false
         elif msg.type == 'control_change': # if control change message (pedal)
             if msg.control == 64 and msg.value >= 64: # if pedal is pressed
                     pedal = True
@@ -45,6 +52,14 @@ def main():
                     #msg.channel = which channel the note is played on
                     #msg.control =  64 for pedal
     print("Disconnected")
+
+def renderLoop():
+    global frame_buffer
+    while True:
+        for i, (R,G,B) in enumerate(frame_buffer):
+            strip.set_led_color(i, R, G, B) # sets LED colors based on frame buffer
+        strip.update_strip() # updates LED strip to show new colors
+        time.sleep(0.033) # delay between each frame, so it doesn't overload the CPU
 
 def diffusionHelper(offset):
     offsets = [0,1,2,3]
@@ -80,24 +95,29 @@ def ledLocation(pitch):
     print(f"LED Location: {loc}") # prints LED location in terminal for testing
     return int(loc) # returns interpolated LED location as an integer
 
-def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain function once LED is pressed
+def ledFadeSustain (ledLocation, color, velocity, pedal, event, note): # fade and sustain function once LED is pressed
     global last_note_time
     (Red, Green, Blue) = color #unpacks tuple of RGB
-    subR = Red / 16
-    subG = Green / 16
-    subB = Blue / 16
-    timeDelay = sustainHelper(pedal, velocity) / 16 # divides sustain time into 16 smaller steps
+    subR = Red / 8
+    subG = Green / 8
+    subB = Blue / 8
+    timeDelay = sustainHelper(pedal, velocity) / 8 # divides sustain time into 5 smaller steps
     loc = ledLocation
-    for i in range (15):
+    for i in range (7):
         Red -= subR
         Green -= subG
         Blue -= subB
+        if event.is_set():
+            return
         for j in range(-Diffusion//2, Diffusion//2 + 1):
+            if event.is_set():
+                return
             multiplier = diffusionHelper(abs(j))
-            strip.set_led_color(loc+j, int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # sets color based on pitch of note
+            frame_buffer[loc+j] = (int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # sets color based on pitch of note
         time.sleep(timeDelay) # delay between each step, so its a smooth fade
-        strip.update_strip() # displays new color / brightness
     while time.perf_counter() - last_note_time < 3: # if no new notes played for 6 seconds, start fading out bottom strip
+        if event.is_set():
+            return
         time.sleep(0.5) # checks every second if new note played
     lastSubR = Red / 5
     lastSubG = Green / 5
@@ -106,11 +126,16 @@ def ledFadeSustain (ledLocation, color, velocity, pedal): # fade and sustain fun
         Red -= lastSubR
         Green -= lastSubG
         Blue -= lastSubB
+        if event.is_set():
+            return
         for j in range(-Diffusion//2, Diffusion//2 + 1):
            multiplier = diffusionHelper(abs(j))
-           strip.set_led_color(loc+j, int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # makes sure goes to full black lastly
+           if event.is_set():
+                return
+           frame_buffer[loc+j] = (int(Red*multiplier), int(Green*multiplier), int(Blue*multiplier)) # makes sure goes to full black lastly
         time.sleep(0.2) # delay between each step, so its a smooth fade
-        strip.update_strip() # displays new color / brightness
+    active_fades.pop(note, None)
+
 
 def sustainHelper(pedal, velocity):
     pedalVelo = [0, 40, 80, 127]
