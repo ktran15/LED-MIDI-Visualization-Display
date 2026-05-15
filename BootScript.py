@@ -2,7 +2,7 @@ import time
 from gpiozero import Button
 import subprocess
 
-pin =    #GPIO PIN NUMBER HERE
+pin = 17  #GPIO PIN NUMBER HERE
 button = Button(pin, pull_up=True)
 
 count = 0
