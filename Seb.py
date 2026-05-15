@@ -80,7 +80,7 @@ def ledColor(pitch, velocity):
     return (int(R), int(G), int(B)) # returns tuple of RGB
 
 def ledColorHelper(pitch, colorIndex):
-    pitches = [21, 35.5, 50, 64.5, 79, 93.5, 108] # data list of potential pitches
+    pitches = [21, 108] # data list of potential pitches
     color = colorIndex # data list of potential colors (0-255)
     interValueColor = np.interp(pitch, pitches, color) # interpolates color value based on pitch input and data lists
     return int(interValueColor) # returns interpolated color value as an integer
