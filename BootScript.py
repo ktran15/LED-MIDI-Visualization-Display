@@ -22,7 +22,7 @@ while True:
     while count == -1:
         time.sleep(0.1)  # wait for button press
     start_time = time.perf_counter()
-    while time.perf_counter() - start_time < 4:
+    while time.perf_counter() - start_time < 6:
         time.sleep(0.1)  # wait out the window, callbacks still fire
     print(f"Window closed, final count: {count}")
     if process:
