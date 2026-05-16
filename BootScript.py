@@ -10,6 +10,8 @@ count = 0
 def switchFlipped():
     global count
     count +=1
+    print(f"Switch flipped, count: {count}")
+
 
 button.when_pressed = switchFlipped
 
@@ -21,6 +23,7 @@ while True:
     start_time = time.perf_counter()
     while time.perf_counter() - start_time < 4:
         time.sleep(0.1)  # wait out the window, callbacks still fire
+    print(f"Window closed, final count: {count}")
     if process:
         process.terminate()
     if count == 1:
