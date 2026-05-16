@@ -19,7 +19,8 @@ process = None
 
 while True:
     count = -1
-    button.wait_for_press()  # wait for first flip
+    while count == -1:
+        time.sleep(0.1)  # wait for button press
     start_time = time.perf_counter()
     while time.perf_counter() - start_time < 4:
         time.sleep(0.1)  # wait out the window, callbacks still fire
