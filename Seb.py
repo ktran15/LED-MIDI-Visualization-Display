@@ -74,9 +74,9 @@ def veloToBrightness(velocity):
     return int(interValueBrightness) # returns interpolated brightness value as an integer
 
 def ledColor(pitch, velocity):
-    R = (ledColorHelper(pitch, [41,74])) * (veloToBrightness(velocity) / 255) # provides data list of RED in ROYGBIV
-    G = (ledColorHelper(pitch, [26,34])) * (veloToBrightness(velocity) / 255) # provides data list of GREEN in ROYGBIV
-    B = (ledColorHelper(pitch, [119,156])) * (veloToBrightness(velocity) / 255) # provides data list of BLUE in ROYGBIV
+    R = (ledColorHelper(pitch, [58,58])) * (veloToBrightness(velocity) / 255) # provides data list of RED in ROYGBIV
+    G = (ledColorHelper(pitch, [28,28])) * (veloToBrightness(velocity) / 255) # provides data list of GREEN in ROYGBIV
+    B = (ledColorHelper(pitch, [156,156])) * (veloToBrightness(velocity) / 255) # provides data list of BLUE in ROYGBIV
     return (int(R), int(G), int(B)) # returns tuple of RGB
 
 def ledColorHelper(pitch, colorIndex):
