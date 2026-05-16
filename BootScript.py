@@ -3,7 +3,7 @@ from gpiozero import Button
 import subprocess
 
 pin = 17  #GPIO PIN NUMBER HERE
-button = Button(pin, pull_up=True)
+button = Button(pin, pull_up=True, bounce_time=0.3)
 
 count = 0
 
