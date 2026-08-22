@@ -1,0 +1,15 @@
+# Virtual environment
+.venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Video source and exports. Demo footage is hosted rather than committed,
+# since GitHub rejects files over 100 MB and repository history is permanent.
+*.mp4
+*.mov
+
+# ffmpeg two-pass logs
+*-0.log
+*.log.mbtree
