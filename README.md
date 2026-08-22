@@ -6,7 +6,11 @@ The unit runs headless. Power on the Pi and it starts listening. A single physic
 
 ## Demo
 
-https://youtu.be/B_Xjkx9cfeY
+<a href="https://youtu.be/B_Xjkx9cfeY">
+  <img src="https://img.youtube.com/vi/B_Xjkx9cfeY/maxresdefault.jpg" alt="Demo video: LEDs responding to piano playing in real time" width="640">
+</a>
+
+[Watch the demo on YouTube](https://youtu.be/B_Xjkx9cfeY)
 
 ## Hardware
 
